@@ -1,0 +1,30 @@
+{
+    "nextDueDate": "01-10-2019",
+    "daysBeforeDueDate": {
+        "min": 0,
+        "max": 10
+    },
+    "amountOptions": [
+        "minDue",
+        "statementBalance",
+        "fixedAmount"
+    ],
+    "fixedAmountRange": {
+        "min": 0.01,
+        "max": 100000
+    },
+    "externalAccount": [
+        {
+            "routingNumber": "123456",
+            "accountNumber": "202934029348",
+            "bankName": "Bank Of America",
+            "nickNaame": "MyBank"
+        },
+        {
+            "routingNumber": "08980223",
+            "accountNumber": "987239847829",
+            "bankName": "Chase Bank",
+            "nickNaame": "MyOtherBank"
+        }
+    ]
+}
