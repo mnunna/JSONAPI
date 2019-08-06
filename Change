@@ -1,0 +1,107 @@
+package com;
+
+import javax.naming.AuthenticationException;
+import javax.naming.Context;
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.*;
+import java.io.UnsupportedEncodingException;
+import java.util.Hashtable;
+
+public class Main
+{
+    public static void main(String[] args)
+    {
+        final String LDAP_SERVERS = "ldap://AD_SERVER:636 ldap://AD_SERVER2:636"; // separated by single spaces
+        final String LDAP_CONNECT_TIMEOUT_MS = "10000"; // 10 seconds
+        final String LDAP_READ_TIMEOUT_MS = "10000"; // 10 seconds
+        final String AUTHENTICATION_DOMAIN = "domain.com";
+        final String USERNAME = "username";
+        final String OLD_PASSWORD = "123";
+        final String NEW_PASSWORD = "456";
+        final String TARGET_BASE_DN = "dc=domain,dc=com";
+
+        Hashtable<String, String> ldapEnv = new Hashtable<>();
+        ldapEnv.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
+        ldapEnv.put(Context.PROVIDER_URL, LDAP_SERVERS);
+        ldapEnv.put(Context.SECURITY_AUTHENTICATION, "simple");
+        ldapEnv.put("java.naming.ldap.version", "3");
+        ldapEnv.put(Context.SECURITY_PRINCIPAL, USERNAME + "@" + AUTHENTICATION_DOMAIN);
+        ldapEnv.put(Context.SECURITY_CREDENTIALS, OLD_PASSWORD);
+        ldapEnv.put(Context.SECURITY_PROTOCOL, "ssl");
+        ldapEnv.put("java.naming.ldap.factory.socket", "io.fouad.ldap.MySSLSocketFactory");
+        //ldapEnv.put("com.sun.jndi.ldap.connect.timeout", LDAP_CONNECT_TIMEOUT_MS);
+        //ldapEnv.put("com.sun.jndi.ldap.read.timeout", LDAP_READ_TIMEOUT_MS);
+        DirContext ldapContext = null;
+
+        try
+        {
+            ldapContext = new InitialDirContext(ldapEnv);
+        }
+        catch(AuthenticationException e)
+        {
+            System.out.println("Wrong username/password!");
+            e.printStackTrace();
+        }
+        catch(NamingException e)
+        {
+            e.printStackTrace();
+        }
+
+        if(ldapContext == null) return;
+
+
+        SearchControls searchControls = new SearchControls();
+        searchControls.setSearchScope(SearchControls.SUBTREE_SCOPE);
+        NamingEnumeration objects = null;
+        try
+        {
+            objects = ldapContext.search(TARGET_BASE_DN, String.format("(&(objectClass=user)(sAMAccountName=%s))", USERNAME), searchControls);
+        }
+        catch(NamingException e)
+        {
+            e.printStackTrace();
+        }
+
+        if(objects == null) return;
+
+        try
+        {
+            if(objects.hasMore())
+            {
+                SearchResult entry = (SearchResult) objects.next();
+                ModificationItem[] mods = new ModificationItem[2];
+                mods[0] = new ModificationItem(DirContext.REMOVE_ATTRIBUTE, new BasicAttribute("unicodePwd", getPasswordByteArray(OLD_PASSWORD)));
+                mods[1] = new ModificationItem(DirContext.ADD_ATTRIBUTE, new BasicAttribute("unicodePwd", getPasswordByteArray(NEW_PASSWORD)));
+                ldapContext.modifyAttributes(entry.getName() + "," + TARGET_BASE_DN, mods);
+
+                System.out.println("Successfully changed the password!");
+            }
+            else
+            {
+                System.out.println("User (" + USERNAME + ") was not found!");
+            }
+        }
+        catch(NamingException e)
+        {
+            e.printStackTrace();
+        }
+
+        System.out.println("DONE!");
+
+    }
+
+    private static byte[] getPasswordByteArray(String password)
+    {
+        String quotedPassword = "\"" + password + "\"";
+        try
+        {
+            return quotedPassword.getBytes("UTF-16LE");
+        }
+        catch(UnsupportedEncodingException e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
