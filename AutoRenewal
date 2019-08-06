@@ -1,0 +1,21 @@
+Option 1:
+    -- Determine the account that is not being used in production
+    -- Get Password from vault
+    -- Change the password
+    -- Create the keytab
+    -- Seed the password, keytab and get wrapped token
+    -- Run manage-vault-secrets using the wrapped token
+    -- Redeploy application
+    
+Option 2:
+    -- Determine the account that is not being used in production
+    -- Get Password from vault
+    -- Change the password
+    -- Seed the password and get wrapped token
+    -- Run manage-vault-secrets using the wrapped token
+    -- Change application docker file to create keytab at deploy time.
+        -- Dockerfile changes:
+            -- install kerberos-workstation
+            -- run createkeytab.sh supplying username and new password 
+    -- Redeploy application
+    
